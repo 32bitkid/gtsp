@@ -15,8 +15,13 @@ import (
 	"github.com/32bitkid/mpeg/video"
 )
 
-const winTitle string = "Go-SDL2 MPEG-2 Player"
-const winWidth, winHeight int = 1280, 720
+const (
+	winTitle            string = "Go-SDL2 MPEG-2 Player"
+	winWidth, winHeight int    = 1280, 720
+
+	ySize = winWidth * winHeight
+	cSize = ySize >> 2
+)
 
 var pid = flag.Int("pid", 0x21, "the PID to play")
 
@@ -28,7 +33,6 @@ func play(file *os.File, pid uint32) {
 	var window *sdl.Window
 	var renderer *sdl.Renderer
 	var texture *sdl.Texture
-	var src, dst sdl.Rect
 	var err error
 
 	window, err = sdl.CreateWindow(winTitle,
@@ -49,7 +53,7 @@ func play(file *os.File, pid uint32) {
 	}
 	defer renderer.Destroy()
 
-	texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, 1280, 720)
+	texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, winWidth, winHeight)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create texture: %s\n", err)
 		os.Exit(4)
@@ -61,22 +65,16 @@ func play(file *os.File, pid uint32) {
 	seq := video.NewVideoSequence(pesReader)
 	seq.AlignTo(video.SequenceHeaderStartCode)
 
-	src = sdl.Rect{0, 0, 1280, 720}
-	dst = sdl.Rect{0, 0, 1280, 720}
-
 	var pointer unsafe.Pointer
 	var pitch int
 
 	for {
 		img, imgErr := seq.Next()
-
 		if imgErr != nil {
 			break
 		}
 
-		texture.Lock(&src, &pointer, &pitch)
-		const ySize = 1280 * 720
-		const cSize = (1280 >> 1) * (720 >> 1)
+		texture.Lock(nil, &pointer, &pitch)
 		pixels := (*[ySize + 2*cSize]uint8)(pointer)
 		y := pixels[0:ySize]
 		cb := pixels[ySize : ySize+cSize]
@@ -86,7 +84,7 @@ func play(file *os.File, pid uint32) {
 		copy(cr, img.Cr)
 		texture.Unlock()
 
-		renderer.Copy(texture, &src, &dst)
+		renderer.Copy(texture, nil, nil)
 		renderer.Present()
 	}
 }
