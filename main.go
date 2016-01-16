@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/veandco/go-sdl2/sdl"
+	"io"
 	"os"
 	"runtime"
 	"unsafe"
@@ -17,10 +18,9 @@ import (
 
 const (
 	winTitle            string = "Go-SDL2 MPEG-2 Player"
-	winWidth, winHeight int    = 1280, 720
+	winWidth, winHeight int    = 1920 >> 1, 1080 >> 1
 
-	ySize = winWidth * winHeight
-	cSize = ySize >> 2
+	maxFrameSize = 16384 * 16384 * 3
 )
 
 var pid = flag.Int("pid", 0x21, "the PID to play")
@@ -53,13 +53,6 @@ func play(file *os.File, pid uint32) {
 	}
 	defer renderer.Destroy()
 
-	texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, winWidth, winHeight)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create texture: %s\n", err)
-		os.Exit(4)
-	}
-	defer texture.Destroy()
-
 	tsReader := ts.NewPayloadUnitReader(file, ts.IsPID(pid))
 	pesReader := pes.NewPayloadReader(tsReader)
 	seq := video.NewVideoSequence(pesReader)
@@ -67,18 +60,37 @@ func play(file *os.File, pid uint32) {
 
 	var pointer unsafe.Pointer
 	var pitch int
+	var ySize int
+	var cSize int
 
 	for {
-		img, imgErr := seq.Next()
-		if imgErr != nil {
+		img, err := seq.Next()
+		if err == io.EOF {
 			break
+		}
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Decoding error: %s\n", err)
+			os.Exit(1)
+		}
+
+		if texture == nil {
+			w, h := seq.Size()
+			fmt.Println(w, h)
+			ySize = w * h
+			cSize = (w * h) >> 2
+			texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, w, h)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to create texture: %s\n", err)
+				os.Exit(4)
+			}
+			defer texture.Destroy()
 		}
 
 		texture.Lock(nil, &pointer, &pitch)
-		pixels := (*[ySize + 2*cSize]uint8)(pointer)
+		pixels := (*[maxFrameSize]uint8)(pointer)
 		y := pixels[0:ySize]
 		cb := pixels[ySize : ySize+cSize]
-		cr := pixels[ySize+cSize:]
+		cr := pixels[ySize+cSize : ySize+cSize+cSize]
 		copy(y, img.Y)
 		copy(cb, img.Cb)
 		copy(cr, img.Cr)
