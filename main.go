@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	winTitle            string = "Go-SDL2 MPEG-2 Player"
+	winTitle            string = "Go-SDL2 MPEG-2 TS Player"
 	winWidth, winHeight int    = 1920 >> 1, 1080 >> 1
 )
 
