@@ -7,7 +7,7 @@ The primary goal of [mpeg](https://github.com/32bitkid/mpeg) is to be a human re
 ## Installation
 
 ```bash
-$ go install github.com/32bitkid/gtsp
+$ go get github.com/32bitkid/gtsp
 ```
 
 ## Notes
