@@ -108,7 +108,11 @@ func play(file *os.File, pid uint32) {
 			texture.Unlock()
 		}
 
-		renderer.Copy(texture, nil, nil)
+		err = renderer.Copy(texture, nil, nil)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Copy failed: %s\n", err)
+			os.Exit(5)
+		}
 		renderer.Present()
 	}
 }
