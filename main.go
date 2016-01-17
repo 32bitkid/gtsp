@@ -22,7 +22,7 @@ const (
 	winWidth, winHeight int    = 1920 >> 1, 1080 >> 1
 )
 
-var pid = flag.Int("pid", 0x21, "the PID to play")
+var pid = flag.Int("pid", 0x01, "the PID to play")
 
 func init() {
 	runtime.LockOSThread()
