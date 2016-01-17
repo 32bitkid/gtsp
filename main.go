@@ -70,7 +70,7 @@ func play(file *os.File, pid uint32) {
 		}
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Decoding error: %s\n", err)
-			os.Exit(1)
+			os.Exit(3)
 		}
 
 		if texture == nil {
