@@ -14,8 +14,8 @@ $ go install github.com/32bitkid/gtsp
 
 The MPEG-2 decoder is presently experimental and does not support the entire MPEG-2 specification; presently, it only supports a subset of Main Profile encoded videos (I,P,B pictures, 4:2:0 chroma, frame based pictures with frame based motion compensation). Underlying library support for more of the specification is on-going.
 
-At the time of writing this, you should be able to play [PID 0x31 from this clip](http://files.32bitkid.com/video/elephant_dreams_clip.ts) from the open source movie [Elephant Dreams](https://orange.blender.org/):
+At the time of writing this, you should be able to play [PID 0x31 from this clip](http://files.32bitkid.com/video/elephants_dream_clip.ts) from the open source movie [Elephants Dream](https://orange.blender.org/):
 
 ```bash
-$ gtsp -pid=0x31 elephant_dreams_clip.ts
+$ gtsp -pid=0x31 elephants_dream_clip.ts
 ```
