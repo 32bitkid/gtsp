@@ -6,6 +6,7 @@ import (
 	"github.com/veandco/go-sdl2/sdl"
 	"io"
 	"os"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -19,8 +20,6 @@ import (
 const (
 	winTitle            string = "Go-SDL2 MPEG-2 Player"
 	winWidth, winHeight int    = 1920 >> 1, 1080 >> 1
-
-	maxFrameSize = 16384 * 16384 * 3
 )
 
 var pid = flag.Int("pid", 0x21, "the PID to play")
@@ -56,12 +55,13 @@ func play(file *os.File, pid uint32) {
 	tsReader := ts.NewPayloadUnitReader(file, ts.IsPID(pid))
 	pesReader := pes.NewPayloadReader(tsReader)
 	seq := video.NewVideoSequence(pesReader)
+
 	seq.AlignTo(video.SequenceHeaderStartCode)
 
 	var pointer unsafe.Pointer
 	var pitch int
-	var ySize int
-	var cSize int
+	var yLen int
+	var cLen int
 
 	for {
 		img, err := seq.Next()
@@ -75,9 +75,8 @@ func play(file *os.File, pid uint32) {
 
 		if texture == nil {
 			w, h := seq.Size()
-			fmt.Println(w, h)
-			ySize = w * h
-			cSize = (w * h) >> 2
+			yLen = w * h
+			cLen = (w * h) >> 2
 			texture, err = renderer.CreateTexture(sdl.PIXELFORMAT_IYUV, sdl.TEXTUREACCESS_STREAMING, w, h)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Failed to create texture: %s\n", err)
@@ -86,15 +85,28 @@ func play(file *os.File, pid uint32) {
 			defer texture.Destroy()
 		}
 
-		texture.Lock(nil, &pointer, &pitch)
-		pixels := (*[maxFrameSize]uint8)(pointer)
-		y := pixels[0:ySize]
-		cb := pixels[ySize : ySize+cSize]
-		cr := pixels[ySize+cSize : ySize+cSize+cSize]
-		copy(y, img.Y)
-		copy(cb, img.Cb)
-		copy(cr, img.Cr)
-		texture.Unlock()
+		{
+			texture.Lock(nil, &pointer, &pitch)
+
+			// Convert pointer to []uint8
+			pixels := *(*[]uint8)(unsafe.Pointer(&reflect.SliceHeader{
+				Data: uintptr(pointer),
+				Len:  yLen + 2*cLen,
+				Cap:  yLen + 2*cLen,
+			}))
+
+			// Select color planes
+			y := pixels[0:yLen]
+			cb := pixels[yLen : yLen+cLen]
+			cr := pixels[yLen+cLen : yLen+cLen+cLen]
+
+			// Copy image data into texture
+			copy(y, img.Y)
+			copy(cb, img.Cb)
+			copy(cr, img.Cr)
+
+			texture.Unlock()
+		}
 
 		renderer.Copy(texture, nil, nil)
 		renderer.Present()
@@ -104,12 +116,12 @@ func play(file *os.File, pid uint32) {
 func main() {
 	flag.Parse()
 
-	filename := flag.Arg(0)
 	if len(flag.Args()) == 0 {
 		flag.Usage()
 		os.Exit(1)
 	}
 
+	filename := flag.Arg(0)
 	file, err := os.Open(filename)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
