@@ -63,6 +63,9 @@ func play(file *os.File, pid uint32) {
 	var yLen int
 	var cLen int
 
+	sdl.Delay(1000)
+	renderer.Present()
+
 	for {
 		img, err := seq.Next()
 		if err == io.EOF {
