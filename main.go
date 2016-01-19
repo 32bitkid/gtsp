@@ -8,11 +8,13 @@ import (
 	"os"
 	"reflect"
 	"runtime"
+	"strings"
 	"unsafe"
 )
 
 import (
 	"github.com/32bitkid/mpeg/pes"
+	"github.com/32bitkid/mpeg/ps"
 	"github.com/32bitkid/mpeg/ts"
 	"github.com/32bitkid/mpeg/video"
 )
@@ -28,7 +30,7 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func play(file *os.File, pid uint32) {
+func play(seq *video.VideoSequence) {
 	var window *sdl.Window
 	var renderer *sdl.Renderer
 	var texture *sdl.Texture
@@ -51,10 +53,6 @@ func play(file *os.File, pid uint32) {
 		os.Exit(2)
 	}
 	defer renderer.Destroy()
-
-	tsReader := ts.NewPayloadUnitReader(file, ts.IsPID(pid))
-	pesReader := pes.NewPayloadReader(tsReader)
-	seq := video.NewVideoSequence(pesReader)
 
 	seq.AlignTo(video.SequenceHeaderStartCode)
 
@@ -129,10 +127,24 @@ func main() {
 	}
 
 	filename := flag.Arg(0)
-	file, err := os.Open(filename)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+
+	var seq *video.VideoSequence
+	if strings.HasSuffix(filename, ".ts") || strings.HasSuffix(filename, ".mts") {
+		file, err := os.Open(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		}
+		tsReader := ts.NewPayloadUnitReader(file, ts.IsPID(uint32(*pid)))
+		pesReader := pes.NewPayloadReader(tsReader)
+		seq = video.NewVideoSequence(pesReader)
+	} else {
+		file, err := os.Open(filename)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error: %s\n", err)
+		}
+		packPayload := ps.NewPackReader(file)
+		seq = video.NewVideoSequence(packPayload)
 	}
 
-	play(file, uint32(*pid))
+	play(seq)
 }
