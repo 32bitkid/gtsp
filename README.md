@@ -4,6 +4,25 @@ An experimental simple MPEG-2 Transport Stream demuxer/player written in Go. Pre
 
 The primary goal of [mpeg](https://github.com/32bitkid/mpeg) is to be a human readable alternative to higher performance video decoding libraries, however work is still being done to improve both readability *and* performance where possible.
 
+## Dependencies
+
+`gtsp` requires SDL:
+
+On **Ubuntu 14.04 and above**, use:
+apt-get install libsdl2{,-mixer,-image,-ttf}-dev
+
+On **Fedora 20 and above**, use:
+yum install SDL2{,_mixer,_image,_ttf}-devel
+
+On **Arch Linux**, use:
+pacman -S sdl2{,_mixer,_image,_ttf}
+
+On **Mac OS X**, install SDL2 via Homebrew like so: brew install sdl2{,_image,_ttf,_mixer}
+
+On **Windows**, install SDL2 via Msys2 like so: pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2{,_mixer,_image,_ttf}
+
+See [go-sdl2](https://github.com/veandco/go-sdl2) for more details.
+
 ## Installation
 
 ```bash
